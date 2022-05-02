@@ -435,10 +435,11 @@ coroutine.wrap(function()
 						v.Character.HumanoidRootPart.Size = Vector3.new(2,2,1)
 						v.Character.Head.Size = Vector3.new(1,1,1)
 				end
-			end)
-		end
+			end
+		end)
 	end
-end)()
+end
+end)
 ------------------------------------------------------------- hitbox extender stuff
 --[[Options.KeyPicker:SetValue({ 'MB2', 'Toggle' }) -- Sets keybind to MB2, mode to Hold
 
