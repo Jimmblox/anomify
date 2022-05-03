@@ -65,26 +65,6 @@ mt.__index = newcclosure(function(t, k)
 end)
 print('Done Silent Aim!')
 ----------------------------------------------------- silent aim stuff
-coroutine.wrap(function()    
-	while wait(1.5) do
-		if Hitboxes then
-			pcall(function()                  
-				for i,v in pairs(game.Players:GetPlayers()) do
-					if v ~= LPlayer and v.Character and v.Character:FindFirstChild('Head') then
-						v.Character.Head.Size = Vector3.new(headHitboxSize,headHitboxSize,headHitboxSize)
-						v.Character.Head.Transparency = hitboxTransparency
-						v.Character.Head.CanCollide = false
-						if v.Character.Humanoid.Health == 0 then
-							v.Character.Head.Size = LPlayer.Character.Head.Size
-							v.Character.Head.Transparency = LPlayer.Character.Head.Transparency                        
-						end
-					end
-				end
-			end)
-		end
-	end
-end)()
-------------------------------------------------------------- hitbox extender stuff
 -- New example script written by wally
 -- You can suggest changes with a pull request or something
 
@@ -116,6 +96,8 @@ local Tabs = {
 -- except Tabboxes you have to call the functions on a tab (Tabbox:AddTab(name))
 local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Silent Aim')
 local hitboxtab = Tabs.Main:AddRightGroupbox('Hitbox Extender')
+local misctab = Tabs.Main:AddLeftGroupbox('Miscellanous')
+local healtab = Tabs.Main:AddRightGroupbox('Health')
 
 -- Tabboxes are a tiny bit different, but here's a basic example:
 --[[
@@ -142,6 +124,24 @@ hitboxtab:AddToggle('toggleextender', {
 	Tooltip = 'Disables or enables the hitbox extender',
 })
 
+misctab:AddToggle('togglestamina', {
+	Text = 'Infinite Stamina Toggle',
+	Default = false,
+	Tooltip = 'simple',
+})
+
+misctab:AddToggle('toggleinfjump', {
+	Text = 'Infinite Jump Toggle',
+	Default = false,
+	Tooltip = 'simple',
+})
+
+healtab:AddToggle('toggleautoheal', {
+	Text = 'Auto Heal Toggle',
+	Default = false,
+	Tooltip = 'You need to be crafter or paramedic for this to work, slide the slider to the minimum health u want to start healing at.',
+})
+
 
 -- Fetching a toggle object for later use:
 -- Toggles.MyToggle.Value
@@ -149,7 +149,19 @@ hitboxtab:AddToggle('toggleextender', {
 -- Toggles is a table added to getgenv() by the library
 -- You index Toggles with the specified index, in this case it is 'MyToggle'
 -- To get the state of the toggle you do toggle.Value
-
+local function disableStam(enabled)
+	repeat wait() until LocalPlayer.Character.HumanoidRootPart.Anchored == false       
+	for i,x in pairs(LocalPlayer.Character:GetChildren()) do
+		if x:IsA("LocalScript") and x.Name ~= "KeyDrawer" and x.Name ~= "Animate" and x.Name ~= "AnimationHandler" then 
+			if enabled == true then
+				x.Disabled = true
+			else
+				x.Disabled = false
+			end
+		end 
+	end 
+end
+------------------------------ inf stamina
 -- Calls the passed function when the toggle is updated
 Toggles.MyToggle:OnChanged(function()
 	-- here we get our toggle object & then get its value
@@ -167,6 +179,46 @@ end)
 
 Toggles.toggleextender:SetValue(false)
 
+Toggles.togglestamina:OnChanged(function()
+	print('togglestamina change to:', Toggles.togglestamina.Value)
+	disableStam(Toggles.togglestamina.Value)
+end)
+
+Toggles.togglestamina:SetValue(false)
+
+Toggles.toggleinfjump:OnChanged(function()
+	print('toggleinfjump change to:', Toggles.toggleinfjump.Value)
+end)
+
+Toggles.toggleautoheal:OnChanged(function()
+	print('toggleautoheal change to:', Toggles.toggleautoheal.Value)
+end)
+
+function Action(Object, Function)if Object ~= nil then Function(Object); end end
+UIS.InputBegan:connect(function(UserInput)
+	if Toggles.toggleinfjump.Value == true and UserInput.UserInputType == Enum.UserInputType.Keyboard and UserInput.KeyCode == Enum.KeyCode.Space then
+		Action(LocalPlayer.Character.Humanoid, function(self)
+			if self:GetState() == Enum.HumanoidStateType.Jumping or self:GetState() == Enum.HumanoidStateType.Freefall then
+				Action(self.Parent.HumanoidRootPart, function(self)
+					self.Velocity = Vector3.new(0, LocalPlayer.Character.Humanoid.JumpPower, 0);
+				end)
+			end
+		end)
+	end      
+end)
+
+Toggles.toggleinfjump:SetValue(false)
+
+UIS.InputBegan:connect(function(key)
+	if Toggles.togglestamina.Value == true and key.KeyCode == Enum.KeyCode.LeftShift then
+		game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 23
+	end
+end)
+UIS.InputEnded:connect(function(key)
+	if Toggles.togglestamina.Value == true and key.KeyCode == Enum.KeyCode.LeftShift then
+		game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 13
+	end
+end)
 -- Groupbox:AddButton
 -- Arguments: Text, Callback
 
@@ -247,6 +299,27 @@ hitboxtab:AddSlider('hitboxslider', {
 	Compact = false, -- If set to true, then it will hide the label
 })
 
+healtab:AddSlider('healslider', {
+	Text = 'Auto Heal Minimum Health',
+
+	-- Text, Default, Min, Max, Rounding must be specified.
+	-- Rounding is the number of decimal places for precision.
+
+	-- Example:
+	-- Rounding 0 - 5
+	-- Rounding 1 - 5.1
+	-- Rounding 2 - 5.15
+	-- Rounding 3 - 5.155
+
+	Default = 1,
+	Min = 1,
+	Max = 100,
+	Rounding = 0,
+
+	Compact = false, -- If set to true, then it will hide the label
+})
+
+
 -- Options is a table added to getgenv() by the library
 -- You index Options with the specified index, in this case it is 'MySlider'
 -- To get the value of the slider you do slider.Value
@@ -267,6 +340,29 @@ end)
 
 -- This should print to the console: "MySlider was changed! New value: 3"
 Options.hitboxslider:SetValue(1)
+
+Options.healslider:OnChanged(function()
+	print('healslider was changed! New value:', Options.healslider.Value)
+end)
+
+-- This should print to the console: "MySlider was changed! New value: 3"
+Options.healslider:SetValue(1)
+function purchaseItem(name)game:GetService("ReplicatedStorage"):FindFirstChild("_CS.Events").PurchaseTeamItem:FireServer(name,"Single",nil)end
+game:GetService("RunService").RenderStepped:connect(function()  
+	if LocalPlayer.Character.Humanoid.Health < Options.healslider.Value and LocalPlayer.Character.Humanoid.Health > 0 and Toggles.toggleautoheal.Value == true then        
+		if not LocalPlayer.Backpack:FindFirstChild("Medi Kit") then
+			purchaseItem("Medi Kit")         
+		else                     
+			for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+				if t:IsA("Tool") and t.Name == "Medi Kit" then          
+					LocalPlayer.Character.Humanoid:EquipTool(t)            
+					game:GetService("ReplicatedStorage"):FindFirstChild("_CS.Events").ToolEvent:FireServer("Heal",LocalPlayer.Character, t)  
+				end
+			end
+		end
+	end 
+end)
+
 
 -- Groupbox:AddInput
 -- Arguments: Idx, Info
@@ -402,9 +498,10 @@ task.spawn(function()
 		if Library.Unloaded then break end
 	end
 end)]]
-coroutine.wrap(function()    
+spawn(function()
 	while wait(1.5) do
 		if Toggles.toggleextender.Value == true then
+			print(Options.hitboxdropdown.Value)
 			pcall(function()                  
 				for i,v in pairs(game.Players:GetPlayers()) do
 					if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('Head') and Options.hitboxdropdown.Value == "Head" then
@@ -416,29 +513,29 @@ coroutine.wrap(function()
 							v.Character.Head.Size = LocalPlayer.Character.Head.Size
 							v.Character.Head.Transparency = LocalPlayer.Character.Head.Transparency                        
 						end
-					elseif v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('Head') and Options.hitboxdropdown.Value == "Torso" then
+					elseif v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('HumanoidRootPart') and Options.hitboxdropdown.Value == "Torso" then
 						v.Character.Head.Size = Vector3.new(1,1,1)
 						v.Character.HumanoidRootPart.Size = Vector3.new(Options.hitboxslider.Value,Options.hitboxslider.Value,Options.hitboxslider.Value)
 						v.Character.HumanoidRootPart.Transparency = 0.5
 						v.Character.HumanoidRootPart.CanCollide = false
 						if v.Character.Humanoid.Health == 0 then
-							v.Character.HumanoidRootPart.Size = LocalPlayer.Character.Head.Size
-							v.Character.HumanoidRootPart.Transparency = LocalPlayer.Character.Head.Transparency                        
+							v.Character.HumanoidRootPart.Size = LocalPlayer.Character.HumanoidRootPart.Size
+							v.Character.HumanoidRootPart.Transparency = LocalPlayer.Character.HumanoidRootPart.Transparency                        
 						end
 					end
 				end
 			end)
-		else
+		elseif Toggles.toggleextender.Value == false then
 			pcall(function()                  
 				for i,v in pairs(game.Players:GetPlayers()) do
 					if v ~= LocalPlayer then
 						v.Character.HumanoidRootPart.Size = Vector3.new(2,2,1)
 						v.Character.Head.Size = Vector3.new(1,1,1)
+					end
 				end
-			end
-		end)
+			end)
+		end
 	end
-end
 end)
 ------------------------------------------------------------- hitbox extender stuff
 --[[Options.KeyPicker:SetValue({ 'MB2', 'Toggle' }) -- Sets keybind to MB2, mode to Hold
